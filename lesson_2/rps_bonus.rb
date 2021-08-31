@@ -85,29 +85,13 @@ class Spock < Move
   end
 end
 
-class Rule
-  def initialize
-    # not sure what the "state" of a rule object should be
-  end
-end
-
-# not sure where "compare" goes yet
-def compare(move1, move2); end
-
 class Player
-  attr_accessor :move, :name, :score, :history
-  
-  WINNING_SCORE = 5
+  attr_accessor :name, :move, :score
   
   def initialize
     set_name
-    @score = 0
-    @history = []
   end
   
-  def store(move)
-    history << move
-  end
 end
 
 class Human < Player
@@ -161,25 +145,27 @@ end
 
 class Computer < Player
   def set_name
-    self.name = ['Reggie', 'Cici', 'Sonia', 'Speedy', 'Turbo'].sample
+    self.name = self.class.to_s
   end
 
   def choose
     self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
   end
 end
-# Five Robots each with a different tendency:
-# 1. Reggie - traditional RPSLS
-# 2. CiCi - 80% tends to choose what you chose before
-# 3. Sonia - 80% tends to choose a winner over the last winning hand
-# 4. Dash - reveals the hand and gives you 2 seconds to beat it
-# 5. Turbo - reveals two hands and gives you 3 seconds to beat both
+
 class Reggie < Computer
   
 end
 
 class Cici < Computer
-  
+  def choose
+    probability = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sample
+    if probability >= 9
+      self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
+    else
+      self.move = human.history[RPSLSGame.round][0]
+    end
+  end
 end
 
 class Sonia < Computer
@@ -194,19 +180,28 @@ class Turbo < Computer
   
 end
 
-# Game Orchestration Engine
-class RPSLSGame
-  attr_accessor :human, :computer, :round, :wins, :losses, :ties, :result, :history
-
+class Score
+  attr_accessor :round, :wins, :losses, :ties, :result, :history
+  
+  WINNING_SCORE = 5
+  
   def initialize
-    @human = Human.new
-    @computer = Computer.new
     @round = 0
     @wins = 0
     @losses = 0
     @ties = 0
     @result = nil
     @history = {}
+  end
+end
+
+class Game
+  attr_accessor :human, :computer, :score
+
+  def initialize
+    @human = Human.new
+    @computer = choose_opponent
+    @score = Score.new
   end
 
   def display_welcome_message
@@ -216,13 +211,36 @@ class RPSLSGame
   def display_goodbye_message
     puts "Thanks for playing Rock, Paper, Scissors, Lizard, Spock. Good bye!"
   end
-
+  
+  def choose_opponent
+    n = ""
+    loop do
+      puts "Choose opponent: Reggie, Cici, Sonia, Speedy, or Turbo"
+      n = gets.chomp.downcase
+      break if %w(reggie cici sonia speedy turbo).include?(n)
+      puts "Sorry, please choose a valid opponent."
+    end
+    
+    case n
+    when 'reggie'
+      Reggie.new
+    when 'cici'
+      Cici.new
+    when 'sonia'
+      Sonia.new
+    when 'speedy'
+      Speedy.new
+    when 'turbo'
+      Turbo.new
+    end
+  end
+  
   def display_moves
     puts "#{human.name} chose #{human.move}."
     puts "#{computer.name} chose #{computer.move}."
   end
   
-  def score
+  def keep_score
     self.round += 1
     if human.move > computer.move
       self.wins += 1
@@ -237,7 +255,7 @@ class RPSLSGame
   end
   
   def record_history
-    self.history[round] = [human.move, result, computer.move]  
+    self.history[round] = [round, human.move, result, computer.move]  
   end
   
   def display_winner
@@ -260,18 +278,18 @@ class RPSLSGame
   
   def display_history
     history.values.each do |round|
-      puts "#{round[0]} / #{round[1]} / #{round[2]}"
+      puts "#{round[0]} / #{round[1]} / #{round[2]} / #{round[3]}"
     end
   end
   
   def champion?
-    score = Player::WINNING_SCORE
+    score = Score::WINNING_SCORE
     return true if computer.score == score || human.score == score
     false
   end
   
   def declare_champion
-    if human.score == Player::WINNING_SCORE
+    if human.score == Score::WINNING_SCORE
       puts "#{human.name} is the champion!"
     else
       puts "#{computer.name} is the champion!"
@@ -299,7 +317,7 @@ class RPSLSGame
       human.choose
       computer.choose
       display_moves
-      score
+      keep_score
       record_history
       display_winner
       display_score
@@ -315,4 +333,63 @@ class RPSLSGame
   end
 end
 
-RPSLSGame.new.play
+Game.new.play
+
+=begin
+Gameplay
+Welcome - Welcome to Rock, Paper, Scissors, Lizard, Spock!
+Instructions - Scissors cuts Paper covers Rock crushes Lizard
+               poisons Spock smashes Scissors decapitates Lizard
+               eats Paper disproves Spock vaporizes Rock crushes Scissors
+Human - To begin, type your name.
+Message - Hi human! Choose game mode:
+                    Practice (p) - Test your skills on any of the five opponents.
+                    Tournament (t) - Defeat all five opponents to become Champion!
+Practice
+Message - Welcome to practice. Choose any of the five opponents to begin.
+            Reggie - good ol' fashioned RPSLS
+            Cici - she has a tendency to copy
+            Sonia - she has a tendency to play a winner over the previous hand
+            Speedy - answer a single hand quickly or you lose
+            Turbo - answer two hands quickly or you lose
+Opponent - select
+Reggie play
+  set board
+  display last 5 moves -              LAST 5 MOVES
+                          Round    Human      Computer    Result
+                          --------------------------------------
+                          (1)      Rock       Spock       Won
+                          (2)      Paper      Lizard      Lost
+                          (3)      Scissors   Scissors    Tied
+                          
+  display current score -                 SCORE
+                          Human: 1     Computer: 1      Ties: 1
+  
+  human.choose
+  computer.choose
+  display human choice
+  display computer choice
+  display winner
+  play_again?
+  
+  Choose Rock (r), Paper (p), Scissors (s), Lizard (l), or Spock (sp)
+    Human chose [choice]
+    Computer chose [choice]
+  
+    You won that round
+    Computer won that round
+    It's a tie
+  
+  Continue Practicing (c) / Switch Opponent (s) / Quit Practice (q)
+  
+  
+  update score
+  log history
+  
+  
+Cici play
+Sonia play
+Speedy play
+Turbo play
+
+=end
