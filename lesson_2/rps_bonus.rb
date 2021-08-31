@@ -22,74 +22,67 @@ Spock	    Rock, Scissors	    Paper, Lizard
 4. Dash - reveals the hand and gives you 2 seconds to beat it
 5. Turbo - reveals two hands and gives you 3 seconds to beat both
 =end
-
-
+require 'pry'
 class Move
-  VALUES = ['rock', 'paper', 'scissors', 'lizard', 'spock']
-
-  def initialize(value)
-    @value = value
-  end
-
-  def scissors?
-    @value == 'scissors'
-  end
-
-  def rock?
-    @value == 'rock'
-  end
-
-  def paper?
-    @value == 'paper'
+  attr_accessor :name
+  
+  def initialize
+    @name = self.class.to_s
   end
   
-  def lizard?
-    @value == 'lizard'
-  end
-  
-  def spock?
-    @value == 'spock'
-  end
-
-  def >(other_move)
-    (rock? && (other_move.scissors? || other_move.lizard?)) ||
-      (paper? && (other_move.rock? || other_move.spock?)) ||
-      (scissors? && (other_move.paper? || other_move.lizard?)) ||
-      (lizard? && (other_move.paper? || other_move.spock?)) ||
-      (spock? && (other_move.rock? || other_move.scissors?))
-  end
-
-  def <(other_move)
-    (rock? && (other_move.paper? || other_move.spock?)) ||
-      (paper? && (other_move.scissors? || other_move.lizard?)) ||
-      (scissors? && (other_move.rock? || other_move.spock?)) ||
-      (lizard? && (other_move.rock? || other_move.scissors?)) ||
-      (spock? && (other_move.paper? || other_move.lizard?))
-  end
-
   def to_s
-    @value
+    name
   end
 end
 
 class Rock < Move
+  def > other
+    other.class == Scissors || other.class == Lizard
+  end
   
+  def < other
+    other.class == Paper || other.class == Spock
+  end
 end
 
 class Paper < Move
+  def > other
+    other.class == Rock || other.class == Spock
+  end
   
+  def < other
+    other.class == Scissors || other.class == Lizard
+  end
 end
 
 class Scissors < Move
+  def > other
+    other.class == Paper || other.class == Lizard
+  end
   
+  def < other
+    other.class == Rock || other.class == Spock
+  end
 end
 
 class Lizard < Move
+  def > other
+    other.class == Paper || other.class == Spock
+  end
   
+  def < other
+    other.class == Rock || other.class == Scissors
+  end
 end
 
 class Spock < Move
+  def > other
+    other.class == Rock || other.class == Scissors
+  end
   
+  def < other
+    other.class == Paper || other.class == Lizard
+  end
 end
 
 class Rule
@@ -102,13 +95,18 @@ end
 def compare(move1, move2); end
 
 class Player
-  attr_accessor :move, :name, :score
+  attr_accessor :move, :name, :score, :history
   
   WINNING_SCORE = 5
   
   def initialize
     set_name
     @score = 0
+    @history = []
+  end
+  
+  def store(move)
+    history << move
   end
 end
 
@@ -123,51 +121,125 @@ class Human < Player
     end
     self.name = n
   end
-
+  
   def choose
     choice = nil
     loop do
-      puts "Please choose rock, paper, scissors, lizard, or spock:"
-      choice = gets.chomp
-      break if Move::VALUES.include?(choice)
+      puts "Please choose rock (r), paper (p), scissors (s), lizard (l), or spock (sp):"
+      choice = gets.chomp.downcase
+      break if %w(rock r paper p scissors s lizard l spock sp).include?(choice)
       puts "Sorry, invalid choice."
     end
-    self.move = Move.new(choice)
+    self.move = set_move(choice)
+  end
+  
+  def set_move(choice)
+    case choice
+    when 'rock'
+      Rock.new
+    when 'paper'
+      Paper.new
+    when 'scissors'
+      Scissors.new
+    when 'lizard'
+      Lizard.new
+    when 'spock'
+      Spock.new
+    when 'r'
+      Rock.new
+    when 'p'
+      Paper.new
+    when 's'
+      Scissors.new
+    when 'l'
+      Lizard.new
+    when 'sp'
+      Spock.new
+    end
   end
 end
 
 class Computer < Player
   def set_name
-    self.name = ['Reggie', 'CiCi', 'Sonia', 'Dash', 'Turbo'].sample
+    self.name = ['Reggie', 'Cici', 'Sonia', 'Speedy', 'Turbo'].sample
   end
 
   def choose
-    self.move = Move.new(Move::VALUES.sample)
+    self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
   end
+end
+# Five Robots each with a different tendency:
+# 1. Reggie - traditional RPSLS
+# 2. CiCi - 80% tends to choose what you chose before
+# 3. Sonia - 80% tends to choose a winner over the last winning hand
+# 4. Dash - reveals the hand and gives you 2 seconds to beat it
+# 5. Turbo - reveals two hands and gives you 3 seconds to beat both
+class Reggie < Computer
+  
+end
+
+class Cici < Computer
+  
+end
+
+class Sonia < Computer
+  
+end
+
+class Speedy < Computer
+  
+end
+
+class Turbo < Computer
+  
 end
 
 # Game Orchestration Engine
-class RPSGame
-  attr_accessor :human, :computer
+class RPSLSGame
+  attr_accessor :human, :computer, :round, :wins, :losses, :ties, :result, :history
 
   def initialize
     @human = Human.new
     @computer = Computer.new
+    @round = 0
+    @wins = 0
+    @losses = 0
+    @ties = 0
+    @result = nil
+    @history = {}
   end
 
   def display_welcome_message
-    puts "Welcome to Rock, Paper, Scissors!"
+    puts "Welcome to Rock, Paper, Scissors, Lizard, Spock!"
   end
 
   def display_goodbye_message
-    puts "Thanks for playing Rock, Paper, Scissors. Good bye!"
+    puts "Thanks for playing Rock, Paper, Scissors, Lizard, Spock. Good bye!"
   end
 
   def display_moves
     puts "#{human.name} chose #{human.move}."
     puts "#{computer.name} chose #{computer.move}."
   end
-
+  
+  def score
+    self.round += 1
+    if human.move > computer.move
+      self.wins += 1
+      self.result = "Won"
+    elsif human.move < computer.move
+      self.losses += 1
+      self.result = "Lost"
+    else
+      self.ties += 1
+      self.result = "Tied"
+    end
+  end
+  
+  def record_history
+    self.history[round] = [human.move, result, computer.move]  
+  end
+  
   def display_winner
     if human.move > computer.move
       puts "#{human.name} won!"
@@ -178,20 +250,18 @@ class RPSGame
     end
   end
   
-  def keep_score
-    if human.move > computer.move
-      human.score += 1
-    elsif human.move < computer.move
-      computer.score += 1
-    else
-    end
-  end
-  
   def display_score
     puts "Score"
     puts "-----"
-    puts "#{human.name}: #{human.score}"
-    puts "#{computer.name}: #{computer.score}"
+    puts "#{human.name}: #{wins}"
+    puts "#{computer.name}: #{losses}"
+    puts "Ties: #{ties}"
+  end
+  
+  def display_history
+    history.values.each do |round|
+      puts "#{round[0]} / #{round[1]} / #{round[2]}"
+    end
   end
   
   def champion?
@@ -225,13 +295,15 @@ class RPSGame
     display_welcome_message
 
     loop do
-      system 'clear'
+      system 'clear' # set board method
       human.choose
       computer.choose
       display_moves
+      score
+      record_history
       display_winner
-      keep_score
       display_score
+      display_history
       if champion?
         declare_champion
         break
@@ -243,4 +315,4 @@ class RPSGame
   end
 end
 
-RPSGame.new.play
+RPSLSGame.new.play
