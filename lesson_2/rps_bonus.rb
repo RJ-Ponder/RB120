@@ -1,6 +1,6 @@
-require 'pry'
 require 'io/console'
 require 'timeout'
+
 module Displayable
   SCREEN_WIDTH = 62
 
@@ -97,7 +97,7 @@ end
 class Human < Player
   attr_accessor :champion
 
-  LONGEST_NAME_LENGTH = 15
+  LONGEST_NAME_LENGTH = 17
 
   def initialize
     super
@@ -194,8 +194,8 @@ end
 
 class Cici < Computer
   def choose(round)
-    probability = [1, 2, 3, 4, 5].sample
-    self.move = if probability == 5 || round.history.empty?
+    probability = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sample
+    self.move = if probability >= 8 || round.history.empty?
                   Computer::POSSIBLE_MOVES.sample
                 else
                   round.history.values.last[0]
@@ -209,8 +209,8 @@ end
 
 class Sonia < Computer
   def choose(round)
-    probability = [1, 2, 3, 4, 5].sample
-    if probability == 5 || round.history.empty?
+    probability = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sample
+    if probability >= 8 || round.history.empty?
       self.move = Computer::POSSIBLE_MOVES.sample
     else
       new_move = Sloth.new
@@ -553,42 +553,62 @@ class Game
     outer_col_width = "Result".length + 2
     inner_col_width = Human::LONGEST_NAME_LENGTH + 2
     center "MOVE HISTORY"
+    format_history_1(outer_col_width, inner_col_width)
+    format_history_2(outer_col_width, inner_col_width)
+    puts
+  end
+
+  def format_history_1(outer_col_width, inner_col_width)
     center "Round".center(outer_col_width) +
            human.name.to_s.center(inner_col_width) +
            computer.name.to_s.center(inner_col_width) +
            "Result".center(outer_col_width)
-    center "-" * (outer_col_width * 2 + inner_col_width * 2)
-    round.history.each do |round, move_history|
-      center round.to_s.center(outer_col_width) +
+    center "-" * ((outer_col_width + inner_col_width) * 2)
+  end
+
+  def format_history_2(outer_col_width, inner_col_width)
+    round.history.each do |round_num, move_history|
+      center round_num.to_s.center(outer_col_width) +
              move_history[0].to_s.center(inner_col_width) +
              move_history[1].to_s.center(inner_col_width) +
              move_history[2].to_s.center(outer_col_width)
     end
-    puts
   end
 
   def display_history_turbo
     outer_col_width = "Result".length + 2
     inner_col_width = Human::LONGEST_NAME_LENGTH + 2
     center "MOVE HISTORY"
+    format_history_turbo_1(outer_col_width, inner_col_width)
+    format_history_turbo_2(outer_col_width, inner_col_width)
+    puts
+  end
+
+  def format_history_turbo_1(outer_col_width, inner_col_width)
     center "Round".center(outer_col_width) +
            human.name.to_s.center(inner_col_width) +
            computer.name.to_s.center(inner_col_width) +
            "Result".center(outer_col_width)
-    center "-" * (outer_col_width * 2 + inner_col_width * 2)
-    round.turbo_history.each do |round, move_history|
-      center round.to_s.center(outer_col_width) +
+    center "-" * ((outer_col_width + inner_col_width) * 2)
+  end
+
+  def format_history_turbo_2(outer_col_width, inner_col_width)
+    round.turbo_history.each do |round_num, move_history|
+      center round_num.to_s.center(outer_col_width) +
              "#{move_history[0]}/#{move_history[1]}".center(inner_col_width) +
              "#{move_history[2]}/#{move_history[3]}".center(inner_col_width) +
              move_history[4].to_s.center(outer_col_width)
     end
-    puts
   end
 
   def display_score
     column_width = (16 + (Human::LONGEST_NAME_LENGTH + 2) * 2) / 3
     center "SCORE"
     center "-" * (column_width * 3)
+    format_score(column_width)
+  end
+
+  def format_score(column_width)
     center "#{human.name}: #{round.wins}".center(column_width) +
            "#{computer.name}: #{round.losses}".center(column_width) +
            "Ties: #{round.ties}".center(column_width)
@@ -629,35 +649,17 @@ class Game
     cm = computer.move
     htm = human.turbo_move
     ctm = computer.turbo_move
-    round.result = if hm > cm && htm > ctm
-                     "Won"
-                   elsif hm < cm || htm < ctm
-                     "Lost"
-                   else
-                     "Tied"
+    round.result = if hm > cm && htm > ctm then "Won"
+                   elsif hm < cm || htm < ctm then "Lost"
+                   else "Tied"
                    end
   end
 
   def tally_score
     round.number += 1
-    if human.move > computer.move
+    if round.result == "Won"
       round.wins += 1
-    elsif human.move < computer.move
-      round.losses += 1
-    else
-      round.ties += 1
-    end
-  end
-
-  def tally_score_turbo
-    round.number += 1
-    hm = human.move
-    cm = computer.move
-    htm = human.turbo_move
-    ctm = computer.turbo_move
-    if hm > cm && htm > ctm
-      round.wins += 1
-    elsif hm < cm || htm < ctm
+    elsif round.result == "Lost"
       round.losses += 1
     else
       round.ties += 1
@@ -729,13 +731,7 @@ class Game
     computer.choose
     display_move_turbo
     human.choose_turbo
-    set_round_screen_turbo
-    determine_result_turbo
-    tally_score_turbo
-    record_moves_turbo
-    set_round_screen_turbo
-    display_human_move_turbo
-    display_winner
+    round_execution_turbo
   end
 
   def round_execution
@@ -748,14 +744,23 @@ class Game
     display_winner
   end
 
+  def round_execution_turbo
+    set_round_screen_turbo
+    determine_result_turbo
+    tally_score
+    record_moves_turbo
+    set_round_screen_turbo
+    display_human_move_turbo
+    display_winner
+  end
+
   def goodbye_screen
     system 'clear'
     center "THANK YOU"
     center "for playing"
     center "ROCK, PAPER, SCISSORS, LIZARD, SPOCK"
     center "---"
-    sleep(1.5)
-    center "Good bye"
+    center "good bye"
   end
 end
 
