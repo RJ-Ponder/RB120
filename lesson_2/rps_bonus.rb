@@ -203,7 +203,7 @@ class Cici < Computer
   end
 
   def to_s
-    "#{name} has a tendency to copy your moves."
+    "#{name} has a tendency to copy your last move."
   end
 end
 
