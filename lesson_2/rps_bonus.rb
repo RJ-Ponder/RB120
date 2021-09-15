@@ -1,191 +1,188 @@
 require 'pry'
 require 'io/console'
 require 'timeout'
+module Displayable
+  SCREEN_WIDTH = 62
+
+  def center(message)
+    puts message.center(SCREEN_WIDTH)
+  end
+
+  def center_break(message)
+    puts message.center(SCREEN_WIDTH)
+    puts
+  end
+end
 
 class Move
   attr_accessor :name
-  
+
   def initialize
     @name = self.class.to_s
   end
-  
+
   def to_s
     name
   end
 end
 
 class Rock < Move
-  def > other
+  def >(other)
     other.class == Scissors || other.class == Lizard
   end
-  
-  def < other
+
+  def <(other)
     other.class == Paper || other.class == Spock
   end
 end
 
 class Paper < Move
-  def > other
+  def >(other)
     other.class == Rock || other.class == Spock
   end
-  
-  def < other
+
+  def <(other)
     other.class == Scissors || other.class == Lizard
   end
 end
 
 class Scissors < Move
-  def > other
+  def >(other)
     other.class == Paper || other.class == Lizard
   end
-  
-  def < other
+
+  def <(other)
     other.class == Rock || other.class == Spock
   end
 end
 
 class Lizard < Move
-  def > other
+  def >(other)
     other.class == Paper || other.class == Spock
   end
-  
-  def < other
+
+  def <(other)
     other.class == Rock || other.class == Scissors
   end
 end
 
 class Spock < Move
-  def > other
+  def >(other)
     other.class == Rock || other.class == Scissors
   end
-  
-  def < other
+
+  def <(other)
     other.class == Paper || other.class == Lizard
   end
 end
 
-class Slowpoke < Move
-  def > other
+class Sloth < Move
+  def >(*)
     false
   end
-  
-  def < other
+
+  def <(*)
     true
   end
 end
 
 class Player
-  attr_accessor :name, :move, :score, :move_2
-  
+  attr_accessor :name, :move, :turbo_move
+
   def initialize
     set_name
   end
-  
 end
 
 class Human < Player
-  def set_name
-    n = ""
+  attr_accessor :champion
+
+  LONGEST_NAME_LENGTH = 15
+
+  def initialize
+    super
+    @champion = false
+  end
+
+  def valid_name
     loop do
-      puts "To begin, type your name:"
       n = gets.chomp
       if n.empty?
-        puts "Sorry, please enter a value."
-      elsif n.length > 15
+        puts "Sorry, please enter a name."
+      elsif n.length > LONGEST_NAME_LENGTH
         puts "Sorry, please enter a shorter name."
       else
-        break
+        return n
       end
     end
-    self.name = n
   end
-  
-  def choose
-    choice = nil
+
+  def set_name
+    puts "To begin, type your name:"
+    self.name = valid_name
+  end
+
+  def valid_choice
+    choice = gets.chomp.downcase
     loop do
-      puts "Please choose rock (r), paper (p), scissors (s), lizard (l), or spock (sp):"
-      choice = gets.chomp.downcase
-      break if %w(rock r paper p scissors s lizard l spock sp).include?(choice)
+      break if %w(rock r paper p scissors sc lizard l spock sp).include?(choice)
       puts "Sorry, invalid choice."
+      choice = gets.chomp.downcase
     end
-    self.move = set_move(choice)
+    choice
   end
-  
+
+  def choose
+    puts "Choose (r)ock, (p)aper, (sc)issors, (l)izard, or (sp)ock:"
+    self.move = make_move(valid_choice)
+  end
+
+  def choose_2
+    self.turbo_move = make_move(valid_choice)
+  end
+
   def choose_dash
-    choice = nil
-    
+    Timeout.timeout(Dash::SECONDS) { choose }
+  rescue Timeout::Error
+    choice = "timeout"
+    self.move = make_move(choice)
+  end
+
+  def choose_turbo
+    self.move = Sloth.new
     begin
-      Timeout::timeout(3) do
-        loop do
-          puts "Quick! r, p, s, l, or sp:"
-          choice = gets.chomp.downcase
-          break if %w(rock r paper p scissors s lizard l spock sp).include?(choice)
-          puts "Sorry, invalid choice."
-        end
+      Timeout.timeout(Turbo::SECONDS) do
+        choose
+        choose_2
       end
     rescue Timeout::Error
       choice = "timeout"
+      self.turbo_move = make_move(choice)
     end
-    
-    self.move = set_move(choice)
   end
-  
-  def choose_turbo
-    choice_1 = nil
-    choice_2 = nil
-    self.move = Slowpoke.new
-    options = %w(rock r paper p scissors s lizard l spock sp)
 
-    begin
-      Timeout::timeout(5) do
-        loop do
-          puts "Quick, enter twice! r, p, s, l, or sp:"
-          choice_1 = gets.chomp.downcase
-          break if options.include?(choice_1)
-          puts "Sorry, invalid choice."
-        end
-        
-        self.move = set_move(choice_1)
-        
-        loop do
-          choice_2 = gets.chomp.downcase
-          break if options.include?(choice_2)
-          puts "Sorry, invalid choice."
-        end
-      end
-    rescue Timeout::Error
-      choice_1 = "timeout 1"
-      choice_2 = "timeout 2"
-    end
-
-    self.move_2 = set_move(choice_2)
-  end
-  
-  def set_move(choice)
+  def make_move(choice)
     case choice
-    when 'rock', 'r'
-      Rock.new
-    when 'paper', 'p'
-      Paper.new
-    when 'scissors', 's'
-      Scissors.new
-    when 'lizard', 'l'
-      Lizard.new
-    when 'spock', 'sp'
-      Spock.new
+    when 'rock', 'r' then Rock.new
+    when 'paper', 'p' then Paper.new
+    when 'scissors', 'sc' then Scissors.new
+    when 'lizard', 'l' then Lizard.new
+    when 'spock', 'sp' then Spock.new
     else
-      Slowpoke.new
+      Sloth.new
     end
   end
 end
 
 class Computer < Player
+  POSSIBLE_MOVES = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new]
+
   def set_name
     self.name = self.class.to_s
   end
 
   def choose
-    self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
+    self.move = POSSIBLE_MOVES.sample
   end
 end
 
@@ -196,66 +193,74 @@ class Reggie < Computer
 end
 
 class Cici < Computer
-  def choose(move_history)
+  def choose(round)
     probability = [1, 2, 3, 4, 5].sample
-    if probability >= 4 || move_history.empty?
-      self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
-    else
-      self.move = move_history.values.last[0]
-    end
+    self.move = if probability == 5 || round.history.empty?
+                  Computer::POSSIBLE_MOVES.sample
+                else
+                  round.history.values.last[0]
+                end
   end
-  
+
   def to_s
     "#{name} has a tendency to copy your moves."
   end
 end
 
 class Sonia < Computer
-  def choose(move_history)
+  def choose(round)
     probability = [1, 2, 3, 4, 5].sample
-    if probability >= 4 || move_history.empty?
-      self.move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
+    if probability == 5 || round.history.empty?
+      self.move = Computer::POSSIBLE_MOVES.sample
     else
-      if move_history.values.last[2] == "Lost"
-        winning_move = move_history.values.last[1]
-      else
-        winning_move = move_history.values.last[0]
-      end
-      new_move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
-      until new_move > winning_move do
-        new_move = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
+      new_move = Sloth.new
+      until new_move > win_or_tie_move(round)
+        new_move = Computer::POSSIBLE_MOVES.sample
       end
       self.move = new_move
     end
   end
-  
+
+  def win_or_tie_move(round)
+    if round.history.values.last[2] == "Lost"
+      round.history.values.last[1]
+    else
+      round.history.values.last[0]
+    end
+  end
+
   def to_s
-    "#{name} likes to play a winner over the previous hand."
+    "#{name} likes to beat the previous winning or tying hand."
   end
 end
 
 class Dash < Computer
+  SECONDS = 3
+
   def to_s
-    "#{name} forces you to answer quickly or lose."
+    "#{name} reveals his hand and forces you to play quickly."
   end
 end
 
 class Turbo < Computer
+  SECONDS = 5
+
   def choose
     super
-    self.move_2 = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new].sample
+    self.turbo_move = Computer::POSSIBLE_MOVES.sample
   end
-  
+
   def to_s
-    "#{name} plays two hands. Win both to win. Lose one and you lose. Everything else is a tie."
+    "#{name} reveals two hands and forces you to win both quickly."
   end
 end
 
 class Round
-  attr_accessor :number, :wins, :losses, :ties, :result, :history, :history2
-  
+  attr_accessor :number, :wins, :losses, :ties, :result, :champion
+  attr_accessor :history, :turbo_history
+
   WINNING_SCORE = 5
-  
+
   def initialize
     @number = 0
     @wins = 0
@@ -263,272 +268,376 @@ class Round
     @ties = 0
     @result = nil
     @history = {}
-    @history2 = {}
-  end
-  
-  def keep_score
-    self.round += 1
-    if human.move > computer.move
-      self.wins += 1
-      self.result = "Won"
-    elsif human.move < computer.move
-      self.losses += 1
-      self.result = "Lost"
-    else
-      self.ties += 1
-      self.result = "Tied"
-    end
-  end
-  
-  def record_history
-    self.history[round] = [round, human.move, result, computer.move]  
-  end
-  
-  def display_winner
-    if human.move > computer.move
-      puts "#{human.name} won!"
-    elsif human.move < computer.move
-      puts "#{computer.name} won."
-    else
-      puts "It's a tie."
-    end
-  end
-
-  def display_history
-    puts history
-    # history.values.each do |round|
-    #   puts "#{round[0]} / #{round[1]} / #{round[2]} / #{round[3]}"
-    # end
-  end
-  
-  def champion?
-    score = Round::WINNING_SCORE
-    return true if computer.score == score || human.score == score
-    false
-  end
-  
-  def declare_champion
-    if human.score == Round::WINNING_SCORE
-      puts "#{human.name} is the champion!"
-    else
-      puts "#{computer.name} is the champion!"
-    end
-  end
-
-  def display_goodbye_message
-    puts "Thanks for playing Rock, Paper, Scissors, Lizard, Spock. Good bye!"
+    @turbo_history = {}
+    @champion = nil
   end
 end
 
 class Game
-  attr_accessor :human, :computer, :round
+  include Displayable
 
-  def display_welcome_message
-    puts "------------------------------------------------"
-    puts "Welcome to Rock, Paper, Scissors, Lizard, Spock!"
-    puts "------------------------------------------------"
+  attr_accessor :human, :computer, :round, :game_mode
+
+  def play
+    welcome_screen
+    @human = Human.new
+    choose_game_mode
+    goodbye_screen
   end
 
-  def display_instructions
-    puts "GAME RULES".center(48)
-    puts "------------------------------------------------"
-    puts "    Scissors cuts Paper covers Rock crushes"
-    puts "    Lizard poisons Spock smashes Scissors"
-    puts "    decapitates Lizard eats Paper disproves"
-    puts "    Spock vaporizes Rock crushes Scissors"
-    puts
-  end
-  
-  def set_screen
+  def welcome_screen
     system 'clear'
     display_welcome_message
     display_instructions
   end
-  
+
+  def display_welcome_message
+    center "WELCOME"
+    center "to"
+    center "ROCK, PAPER, SCISSORS, LIZARD, SPOCK"
+    center "---"
+  end
+
+  def display_instructions
+    center "GAME RULES"
+    center "Scissors cuts Paper covers Rock crushes"
+    center "Lizard poisons Spock smashes Scissors"
+    center "decapitates Lizard eats Paper disproves"
+    center_break "Spock vaporizes Rock crushes Scissors"
+  end
+
   def choose_game_mode
-    system 'clear'
-    puts "Hi, #{human.name}!"
-    puts "Choose game mode:"
-    puts "=> Practice (p) - Test your skills against one of five opponents."
-    puts
-    puts "=> Tournament (t) - Defeat all five opponents to become Champion!"
-    puts
-    puts "=> Quit (q)"
-    mode = ""
     loop do
-      mode = gets.chomp.downcase
-      break if ['p', 'practice', 't', 'tournament'].include?(mode)
-      puts "Please choose either Practice (p) or Tournament (t)."
+      display_game_mode
+      mode = find_mode
+      practice if ['p', 'practice'].include?(mode)
+      tournament if ['t', 'tournament'].include?(mode)
+      break if ['q', 'quit'].include?(mode)
     end
-    
-    practice if mode == 'p' || mode == 'practice'
-    tournament if mode == 't' || mode == 'tournament'
   end
-  
-  def practice_welcome
-    @round = Round.new
-    
+
+  def display_game_mode
     system 'clear'
-    puts "Welcome to Practice Mode. Choose any of the five opponents to begin:"
-    puts
-    puts "=> #{Reggie.new}"
-    puts "=> #{Cici.new}"
-    puts "=> #{Sonia.new}"
-    puts "=> #{Dash.new}"
-    puts "=> #{Turbo.new}"
-    puts
+    center "Hi, #{human.name}!"
+    center "---"
+    center_break "GAME MODES"
+    center "(P)ractice"
+    center_break "Test your skills against one of five opponents."
+    center "(T)ournament"
+    center_break "Defeat all five opponents to become Champion!"
   end
-  
-  def tournament_welcome
-    @round = Round.new
-    
-    system 'clear'
-    puts "Welcome to the Tournament."
-    puts "You will face all 5 opponents in succession:"
-    puts "=> #{Reggie.new}"
-    puts "=> #{Cici.new}"
-    puts "=> #{Sonia.new}"
-    puts "=> #{Dash.new}"
-    puts "=> #{Turbo.new}"
-    puts "Win #{Round::WINNING_SCORE} rounds before your opponent to advance."
-    puts "Defeat all 5 opponents to become RPSLS Champion!"
-    
-    puts "Start (enter) / Quit (q)"
-    
-  end
-  
-  def choose_opponent
-    opp = ""
+
+  def find_mode
+    puts "Choose a game mode or (q)uit:"
+    mode = gets.chomp.downcase
     loop do
-      puts "Choose opponent: Reggie (r), Cici (c), Sonia (s), Dash (d), or Turbo (t)"
-      opp = gets.chomp.downcase
+      break if ['p', 'practice', 't', 'tournament', 'q', 'quit'].include?(mode)
+      puts "Please choose (P)ractice, (T)ournament, or (Q)uit:"
+      mode = gets.chomp.downcase
+    end
+    mode
+  end
+
+  def practice
+    self.game_mode = "p"
+    loop do
+      @round = Round.new
+      practice_welcome
+      @computer = set_opponent
+      opponent_message
+      break if play_opponent == "quit"
+    end
+  end
+
+  def practice_welcome
+    system 'clear'
+    center "WELCOME to PRACTICE"
+    center "---"
+    center_break "Choose any of the five opponents to begin:"
+    display_opponents
+  end
+
+  def display_opponents
+    center Reggie.new.to_s
+    center Cici.new.to_s
+    center Sonia.new.to_s
+    center Dash.new.to_s
+    center_break Turbo.new.to_s
+  end
+
+  def set_opponent
+    case choose_opponent
+    when 'reggie', 'r' then Reggie.new
+    when 'cici', 'c' then Cici.new
+    when 'sonia', 's' then Sonia.new
+    when 'Dash', 'd' then Dash.new
+    when 'turbo', 't' then Turbo.new
+    end
+  end
+
+  def choose_opponent
+    puts "Choose opponent: (R)eggie, (C)ici, (S)onia, (D)ash, or (T)urbo"
+    opp = gets.chomp.downcase
+    loop do
       break if %w(reggie r cici c sonia s Dash d turbo t).include?(opp)
       puts "Sorry, please choose a valid opponent."
+      opp = gets.chomp.downcase
     end
-    
-    case opp
-    when 'reggie', 'r'
-      Reggie.new
-    when 'cici', 'c'
-      Cici.new
-    when 'sonia', 's'
-      Sonia.new
-    when 'Dash', 'd'
-      Dash.new
-    when 'turbo', 't'
-      Turbo.new
-    end
+    opp
   end
-  
+
   def opponent_message
-    puts "Your opponent is #{computer.name}!"
-    puts
-    puts computer
-    puts
-    puts "Good luck! Press any key to continue."
-    STDIN.getch
+    system 'clear'
+    center_break "Your opponent is"
+    center computer.name.upcase
+    center "---"
+    center_break computer.to_s
+    continue_with_enter
   end
-  
+
+  def continue_with_enter
+    puts "Press enter to continue."
+    answer = gets
+    loop do
+      break if %W(continue\n \n).include?(answer)
+      puts "Please press enter to continue."
+      answer = gets
+    end
+  end
+
+  def play_opponent
+    loop do
+      opponent_type
+      return if round_winner?
+      decision = continue_prompt
+      return decision unless decision == "continue"
+    end
+  end
+
+  def opponent_type
+    case computer.name
+    when "Reggie" then play_reggie
+    when "Cici" then play_cici
+    when "Sonia" then play_sonia
+    when "Dash" then play_dash
+    when "Turbo" then play_turbo
+    end
+  end
+
+  def continue_prompt
+    if game_mode == "p"
+      practice_prompt
+    else
+      tournament_prompt
+    end
+  end
+
+  def practice_prompt
+    puts "Continue (enter) / (S)witch Opponent / (Q)uit Practice"
+    answer = gets.downcase
+    loop do
+      break if %W(continue\n \n switch\n s\n quit\n q\n).include?(answer)
+      puts "Sorry, invalid response."
+      answer = gets.downcase
+    end
+    return "continue" if ["continue\n", "\n"].include?(answer)
+    return "quit" if ["quit", "q"].include?(answer.chomp)
+  end
+
+  def tournament_prompt
+    puts "Continue (enter) / (Q)uit Tournament"
+    answer = gets.downcase
+    loop do
+      break if %W(continue\n \n quit\n q\n).include?(answer)
+      puts "Sorry, invalid response."
+      answer = gets.downcase
+    end
+    return "continue" if ["continue\n", "\n"].include?(answer)
+    return "quit" if ["quit", "q"].include?(answer.chomp)
+  end
+
+  def tournament
+    self.game_mode = "t"
+    tournament_welcome
+    return unless continue_prompt == "continue"
+    tournament_opponent
+    champion_message if human.champion
+  end
+
+  def tournament_welcome
+    system 'clear'
+    center "WELCOME to the TOURNAMENT"
+    center "---"
+    center_break "You will face all 5 opponents in succession."
+    display_opponents
+    center_break "Win #{Round::WINNING_SCORE} hands to defeat the opponent."
+    center_break "Defeat all 5 opponents to become RPSLS Champion!"
+  end
+
+  def tournament_opponent
+    [Reggie.new, Cici.new, Sonia.new, Dash.new, Turbo.new].each do |opponent|
+      play_tournament(opponent)
+      if round.wins == Round::WINNING_SCORE
+        next_opponent
+        next
+      else
+        failed_tournament_message
+        break
+      end
+    end
+  end
+
+  def play_tournament(opponent)
+    @computer = opponent
+    @round = Round.new
+    opponent_message
+    play_opponent
+  end
+
+  def next_opponent
+    system 'clear'
+    if computer.class == Turbo
+      human.champion = true
+      display_history_turbo
+    else
+      display_history
+    end
+    display_score
+    puts
+    next_opponent_message
+  end
+
+  def next_opponent_message
+    center_break "Nice job! You defeated #{computer.name}!"
+    return continue_with_enter if computer.class == Turbo
+    center_break "Moving to the next opponent."
+    continue_with_enter
+  end
+
+  def failed_tournament_message
+    system 'clear'
+    computer.class == Turbo ? display_history_turbo : display_history
+    display_score
+    puts
+    center_break "You were defeated by #{computer.name}."
+    center_break "Better luck next time."
+    continue_with_enter
+  end
+
+  def champion_message
+    system 'clear'
+    center ">-----<"
+    center_break "CONGRATULATIONS, #{human.name}!"
+    center "You are the"
+    center "RPSLS Champion!"
+    center_break ">-----<"
+    human.champion = false
+    continue_with_enter
+  end
+
   def set_round_screen
     system 'clear'
     display_instructions
     display_history
     display_score
   end
-  
+
   def set_round_screen_turbo
     system 'clear'
     display_instructions
     display_history_turbo
     display_score
   end
-  
+
   def display_history
-    spaces = " " * ((37 - human.name.length - computer.name.length) / 3)
-    puts "MOVE HISTORY".center(48)
-    puts "Round#{spaces}#{human.name}#{spaces}#{computer.name}#{spaces}Result"
-    puts "------------------------------------------------"
-    round.history.each do |key, value|
-      sp1 = " " * (5 + spaces.length - key.to_s.length)
-      sp2 = " " * (human.name.length + spaces.length - value[0].to_s.length)
-      sp3 = " " * (computer.name.length + spaces.length - value[1].to_s.length)
-      puts "#{key}#{sp1}#{value[0]}#{sp2}#{value[1]}#{sp3}#{value[2]}"
+    outer_col_width = "Result".length + 2
+    inner_col_width = Human::LONGEST_NAME_LENGTH + 2
+    center "MOVE HISTORY"
+    center "Round".center(outer_col_width) +
+           human.name.to_s.center(inner_col_width) +
+           computer.name.to_s.center(inner_col_width) +
+           "Result".center(outer_col_width)
+    center "-" * (outer_col_width * 2 + inner_col_width * 2)
+    round.history.each do |round, move_history|
+      center round.to_s.center(outer_col_width) +
+             move_history[0].to_s.center(inner_col_width) +
+             move_history[1].to_s.center(inner_col_width) +
+             move_history[2].to_s.center(outer_col_width)
     end
     puts
   end
-  
+
   def display_history_turbo
-    space1 = " " * (18 - human.name.length)
-    space2 = " " * (18 - computer.name.length)
-    puts "MOVE HISTORY".center(48)
-    puts "Round #{human.name}#{space1}#{computer.name}#{space2}Result"
-    puts "------------------------------------------------"
-    round.history2.each do |key, value|
-      sp1 = " " * (6 - key.to_s.length)
-      sp2 = " " * (17 - value[0].to_s.length - value[1].to_s.length)
-      sp3 = " " * (17 - value[2].to_s.length - value[3].to_s.length)
-      puts "#{key}#{sp1}#{value[0]}/#{value[1]}#{sp2}#{value[2]}/#{value[3]}#{sp3}#{value[4]}"
+    outer_col_width = "Result".length + 2
+    inner_col_width = Human::LONGEST_NAME_LENGTH + 2
+    center "MOVE HISTORY"
+    center "Round".center(outer_col_width) +
+           human.name.to_s.center(inner_col_width) +
+           computer.name.to_s.center(inner_col_width) +
+           "Result".center(outer_col_width)
+    center "-" * (outer_col_width * 2 + inner_col_width * 2)
+    round.turbo_history.each do |round, move_history|
+      center round.to_s.center(outer_col_width) +
+             "#{move_history[0]}/#{move_history[1]}".center(inner_col_width) +
+             "#{move_history[2]}/#{move_history[3]}".center(inner_col_width) +
+             move_history[4].to_s.center(outer_col_width)
     end
     puts
   end
-  
+
   def display_score
-    h = human.name.length
-    c = computer.name.length
-    w = round.wins.to_s.length
-    l = round.losses.to_s.length
-    t = round.ties.to_s.length
-    constant = 10
-    spaces = " " * ((48 - (constant + h + c + w + l + t)) / 4)
-    puts "SCORE".center(48)
-    puts "------------------------------------------------"
-    puts "#{spaces}#{human.name}: #{round.wins}#{spaces}#{computer.name}: " +
-    "#{round.losses}#{spaces}Ties: #{round.ties}#{spaces}"
+    column_width = (16 + (Human::LONGEST_NAME_LENGTH + 2) * 2) / 3
+    center "SCORE"
+    center "-" * (column_width * 3)
+    center "#{human.name}: #{round.wins}".center(column_width) +
+           "#{computer.name}: #{round.losses}".center(column_width) +
+           "Ties: #{round.ties}".center(column_width)
     puts
   end
-  
+
   def display_moves
-    puts "#{computer.name} chose #{computer.move}."
-    puts "#{human.name} chose #{human.move}."
-    puts
+    center "#{computer.name} chose #{computer.move}."
+    center_break "#{human.name} chose #{human.move}."
   end
-  
-  def display_dash_move
-    puts "#{computer.name} chose #{computer.move}."
-    puts
+
+  def display_move_dash
+    center_break "#{computer.name} chose #{computer.move}."
   end
-  
-  def display_turbo_move
-    puts "#{computer.name} chose #{computer.move} and #{computer.move_2}."
-    puts
+
+  def display_move_turbo
+    center_break "#{computer.name} chose #{computer.move} and " \
+    "#{computer.turbo_move}."
   end
-  
-  def display_turbo_moves
-    puts "#{computer.name} chose #{computer.move} and #{computer.move_2}."
-    puts "#{human.name} chose #{human.move} and #{human.move_2}."
-    puts
+
+  def display_human_move_turbo
+    center "#{computer.name} chose #{computer.move} and #{computer.turbo_move}."
+    center_break "#{human.name} chose #{human.move} and #{human.turbo_move}."
   end
-  
+
   def determine_result
-    if human.move > computer.move
-      round.result = "Won"
-    elsif human.move < computer.move
-      round.result = "Lost"
-    else
-      round.result = "Tied"
-    end
+    round.result = if human.move > computer.move
+                     "Won"
+                   elsif human.move < computer.move
+                     "Lost"
+                   else
+                     "Tied"
+                   end
   end
-  
+
   def determine_result_turbo
-    if human.move > computer.move && human.move_2 > computer.move_2
-      round.result = "Won"
-    elsif human.move < computer.move || human.move_2 < computer.move_2
-      round.result = "Lost"
-    else
-      round.result = "Tied"
-    end
+    hm = human.move
+    cm = computer.move
+    htm = human.turbo_move
+    ctm = computer.turbo_move
+    round.result = if hm > cm && htm > ctm
+                     "Won"
+                   elsif hm < cm || htm < ctm
+                     "Lost"
+                   else
+                     "Tied"
+                   end
   end
-  
+
   def tally_score
     round.number += 1
     if human.move > computer.move
@@ -539,239 +648,115 @@ class Game
       round.ties += 1
     end
   end
-  
+
   def tally_score_turbo
     round.number += 1
-    if human.move > computer.move && human.move_2 > computer.move_2
+    hm = human.move
+    cm = computer.move
+    htm = human.turbo_move
+    ctm = computer.turbo_move
+    if hm > cm && htm > ctm
       round.wins += 1
-    elsif human.move < computer.move || human.move_2 < computer.move_2
+    elsif hm < cm || htm < ctm
       round.losses += 1
     else
       round.ties += 1
     end
   end
-  
+
   def record_moves
-    round.history[round.number] = [human.move, computer.move, round.result]  
+    round.history[round.number] = [human.move, computer.move, round.result]
   end
-  
+
   def record_moves_turbo
-    round.history2[round.number] = [human.move, human.move_2, computer.move, computer.move_2, round.result]
+    round.turbo_history[round.number] = [
+      human.move,
+      human.turbo_move,
+      computer.move,
+      computer.turbo_move,
+      round.result
+    ]
   end
-  
+
   def display_winner
     if round.result == "Won"
-      puts "#{human.name} won!"
+      center "#{human.name} won!"
     elsif round.result == "Lost"
-      puts "#{computer.name} won."
+      center "#{computer.name} won."
     else
-      puts "It's a tie."
+      center "It's a tie."
     end
     puts
   end
-  
-  def champion
+
+  def round_winner?
     score = Round::WINNING_SCORE
-    return "human" if round.wins == score
-    return "computer" if round.losses == score
-    "none"
+    return true if game_mode == "t" && [round.wins, round.losses].max == score
+    false
   end
-  
-  def continue_prompt
-    answer = nil
-    loop do
-      puts "Continue (enter) / Change Opponent (c) / Quit Practice (q)"
-      answer = gets
-      if answer == "\n"
-        return "continue"
-      elsif answer.chomp.downcase == 'c'
-        return "change opponent"
-      elsif answer.chomp.downcase == 'q'
-        return "quit"
-      else
-        puts "Sorry, invalid response."
-      end
-    end
-  end
-  
+
   def play_reggie
     set_round_screen
     computer.choose
     human.choose
-    set_round_screen
-    display_moves
-    determine_result
-    tally_score
-    record_moves
-    set_round_screen
-    display_moves
-    display_winner
+    round_execution
   end
-  
+
   def play_cici
     set_round_screen
-    computer.choose(round.history)
+    computer.choose(round)
     human.choose
-    set_round_screen
-    display_moves
-    determine_result
-    tally_score
-    record_moves
-    set_round_screen
-    display_moves
-    display_winner
+    round_execution
   end
-  
+
   def play_sonia
     set_round_screen
-    computer.choose(round.history)
+    computer.choose(round)
     human.choose
-    set_round_screen
-    display_moves
-    determine_result
-    tally_score
-    record_moves
-    set_round_screen
-    display_moves
-    display_winner
+    round_execution
   end
-  
+
   def play_dash
     set_round_screen
     computer.choose
-    display_dash_move
+    display_move_dash
     human.choose_dash
-    set_round_screen
-    determine_result
-    tally_score
-    record_moves
-    set_round_screen
-    display_moves
-    display_winner
+    round_execution
   end
-  
+
   def play_turbo
     set_round_screen_turbo
     computer.choose
-    display_turbo_move
+    display_move_turbo
     human.choose_turbo
     set_round_screen_turbo
     determine_result_turbo
     tally_score_turbo
     record_moves_turbo
     set_round_screen_turbo
-    display_turbo_moves
+    display_human_move_turbo
     display_winner
   end
-  
-  def practice
-    practice_welcome
-    @computer = choose_opponent
+
+  def round_execution
+    set_round_screen
+    determine_result
+    tally_score
+    record_moves
+    set_round_screen
+    display_moves
+    display_winner
+  end
+
+  def goodbye_screen
     system 'clear'
-    opponent_message
-    loop do
-      case computer.name
-      when "Reggie"
-        play_reggie
-      when "Cici"
-        play_cici
-      when "Sonia"
-        play_sonia
-      when "Dash"
-        play_dash
-      when "Turbo"
-        play_turbo
-      end
-      decision = continue_prompt
-        if decision == "change opponent"
-          return practice
-        elsif decision == "quit"
-          return choose_game_mode
-        elsif decision == "continue"
-          next
-        end
-    end
-  end
-  
-  def tournament
-    tournament_welcome
-    @computer = Reggie.new
-    opponent_message
-    loop do
-      play_reggie
-      continue_prompt
-      if champion == "human"
-        puts "Congrats! Moving to next opponent."
-        break
-      elsif champion == "computer"
-        puts "Sorry, better luck next time."
-        return
-      end
-    end
-    @round = Round.new
-    @computer = Cici.new
-    opponent_message
-    loop do
-      play_cici
-      continue_prompt
-      if champion == "human"
-        puts "Congrats! Moving to next opponent."
-        break
-      elsif champion == "computer"
-        puts "Sorry, better luck next time."
-        return
-      end
-    end
-    @round = Round.new
-    @computer = Sonia.new
-    opponent_message
-    loop do
-      play_sonia
-      continue_prompt
-      if champion == "human"
-        puts "Congrats! Moving to next opponent."
-        break
-      elsif champion == "computer"
-        puts "Sorry, better luck next time."
-        return
-      end
-    end
-    @round = Round.new
-    @computer = Dash.new
-    opponent_message
-    loop do
-      play_dash
-      continue_prompt
-      if champion == "human"
-        puts "Congrats! Moving to next opponent."
-        break
-      elsif champion == "computer"
-        puts "Sorry, better luck next time."
-        return
-      end
-    end
-    @round = Round.new
-    @computer = Turbo.new
-    opponent_message
-    loop do
-      play_turbo
-      continue_prompt
-      if champion == "human"
-        puts "Congrats! Moving to next opponent."
-        break
-      elsif champion == "computer"
-        puts "Sorry, better luck next time."
-        return
-      end
-    end
-    puts "Congrats! You are the Champion!"
-  end
-  
-  def start
-    set_screen
-    @human = Human.new
-    choose_game_mode
+    center "THANK YOU"
+    center "for playing"
+    center "ROCK, PAPER, SCISSORS, LIZARD, SPOCK"
+    center "---"
+    sleep(1.5)
+    center "Good bye"
   end
 end
 
-Game.new.start
+Game.new.play
