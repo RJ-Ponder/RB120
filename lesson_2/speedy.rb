@@ -131,25 +131,45 @@
 # p "hello".class
 # p [1, 2, 3, "happy days"].class
 # p 142.class
-SCREEN_WIDTH = 62
+# SCREEN_WIDTH = 62
 
-def center(message)
-  puts message.center(SCREEN_WIDTH)
+# def center(message)
+#   puts message.center(SCREEN_WIDTH)
+# end
+
+# def center_break(message)
+#   puts message.center(SCREEN_WIDTH)
+#   puts
+# end
+
+# def champion_message
+#   system 'clear'
+#   center ">-----<"
+#   center_break "CONGRATULATIONS, RJ!"
+#   center "You are the" 
+#   center "RPSLS Champion!"
+#   center_break ">-----<"
+#   puts "Press enter to continue."
+# end
+
+# champion_message
+
+class Greeting
+  def greet(message)
+    puts message
+  end
 end
 
-def center_break(message)
-  puts message.center(SCREEN_WIDTH)
-  puts
+class Hello < Greeting
+  def self.hi
+    greet("Hello")
+  end
 end
 
-def champion_message
-  system 'clear'
-  center ">-----<"
-  center_break "CONGRATULATIONS, RJ!"
-  center "You are the" 
-  center "RPSLS Champion!"
-  center_break ">-----<"
-  puts "Press enter to continue."
+class Goodbye < Greeting
+  def bye
+    greet("Goodbye")
+  end
 end
 
-champion_message
+Hello.hi
