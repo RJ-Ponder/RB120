@@ -106,7 +106,7 @@ class Human < Player
 
   def valid_name
     loop do
-      n = gets.chomp
+      n = gets.chomp.strip
       if n.empty?
         puts "Sorry, please enter a name."
       elsif n.length > LONGEST_NAME_LENGTH
@@ -123,11 +123,11 @@ class Human < Player
   end
 
   def valid_choice
-    choice = gets.chomp.downcase
+    choice = gets.chomp.downcase.strip
     loop do
       break if %w(rock r paper p scissors sc lizard l spock sp).include?(choice)
       puts "Sorry, invalid choice."
-      choice = gets.chomp.downcase
+      choice = gets.chomp.downcase.strip
     end
     choice
   end
@@ -329,11 +329,11 @@ class Game
 
   def find_mode
     puts "Choose a game mode or (q)uit:"
-    mode = gets.chomp.downcase
+    mode = gets.chomp.downcase.strip
     loop do
       break if ['p', 'practice', 't', 'tournament', 'q', 'quit'].include?(mode)
       puts "Please choose (P)ractice, (T)ournament, or (Q)uit:"
-      mode = gets.chomp.downcase
+      mode = gets.chomp.downcase.strip
     end
     mode
   end
@@ -377,11 +377,11 @@ class Game
 
   def choose_opponent
     puts "Choose opponent: (R)eggie, (C)ici, (S)onia, (D)ash, or (T)urbo"
-    opp = gets.chomp.downcase
+    opp = gets.chomp.downcase.strip
     loop do
       break if %w(reggie r cici c sonia s Dash d turbo t).include?(opp)
       puts "Sorry, please choose a valid opponent."
-      opp = gets.chomp.downcase
+      opp = gets.chomp.downcase.strip
     end
     opp
   end
@@ -397,11 +397,11 @@ class Game
 
   def continue_with_enter
     puts "Press enter to continue."
-    answer = gets
+    answer = gets.strip
     loop do
       break if %W(continue\n \n).include?(answer)
       puts "Please press enter to continue."
-      answer = gets
+      answer = gets.strip
     end
   end
 
@@ -434,11 +434,11 @@ class Game
 
   def practice_prompt
     puts "Continue (enter) / (S)witch Opponent / (Q)uit Practice"
-    answer = gets.downcase
+    answer = gets.downcase.strip
     loop do
       break if %W(continue\n \n switch\n s\n quit\n q\n).include?(answer)
       puts "Sorry, invalid response."
-      answer = gets.downcase
+      answer = gets.downcase.strip
     end
     return "continue" if ["continue\n", "\n"].include?(answer)
     return "quit" if ["quit", "q"].include?(answer.chomp)
@@ -446,11 +446,11 @@ class Game
 
   def tournament_prompt
     puts "Continue (enter) / (Q)uit Tournament"
-    answer = gets.downcase
+    answer = gets.downcase.strip
     loop do
       break if %W(continue\n \n quit\n q\n).include?(answer)
       puts "Sorry, invalid response."
-      answer = gets.downcase
+      answer = gets.downcase.strip
     end
     return "continue" if ["continue\n", "\n"].include?(answer)
     return "quit" if ["quit", "q"].include?(answer.chomp)

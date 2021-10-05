@@ -1,56 +1,56 @@
 # require 'timeout'
 # require 'io/console'
 
-# # computer1 = %w(rock paper scissors lizard spock).sample
-# # computer2 = %w(rock paper scissors lizard spock).sample
-# # puts computer1
-# # puts computer2
+# computer1 = %w(rock paper scissors lizard spock).sample
+# computer2 = %w(rock paper scissors lizard spock).sample
+# puts computer1
+# puts computer2
 
-# # answer1 = nil
-# # answer2 = nil
+# answer1 = nil
+# answer2 = nil
 
-# # begin
-# #   Timeout::timeout(3) do
-# #     answer1 = gets.chomp
-# #     answer2 = gets.chomp
-# #   end
-# # rescue Timeout::Error
-# #   answer1 = nil
-# #   answer2 = nil
-# # end
+# begin
+#   Timeout::timeout(3) do
+#     answer1 = gets.chomp
+#     answer2 = gets.chomp
+#   end
+# rescue Timeout::Error
+#   answer1 = nil
+#   answer2 = nil
+# end
 
-# # if answer1 == computer1 && answer2 == computer2
-# #   puts "you win"
-# # else
-# #   puts "you lose"
-# # end
+# if answer1 == computer1 && answer2 == computer2
+#   puts "you win"
+# else
+#   puts "you lose"
+# end
 
-# # col, row = IO.console.winsize
-# # puts "hello"
-# # system 'clear'
+# col, row = IO.console.winsize
+# puts "hello"
+# system 'clear'
 
-# # def prompt(message, col)
-# #   puts " " * (col / 2) + "#{message}" + " " * (col / 2)
-# # end
+# def prompt(message, col)
+#   puts " " * (col / 2) + "#{message}" + " " * (col / 2)
+# end
 
-# # prompt("This is a test", col)
+# prompt("This is a test", col)
 
-# # choice = nil
+# choice = nil
     
-# # begin
-# #   Timeout::timeout(5) do
-# #     loop do
-# #       puts "Quick! r, p, s, l, or sp:"
-# #       choice = gets.chomp.downcase
-# #       break if %w(rock r paper p scissors s lizard l spock sp).include?(choice)
-# #       puts "Sorry, invalid choice."
-# #     end
-# #   end
-# # rescue Timeout::Error
-# #   choice = "timeout"
-# # end
+# begin
+#   Timeout::timeout(5) do
+#     loop do
+#       puts "Quick! r, p, s, l, or sp:"
+#       choice = gets.chomp.downcase
+#       break if %w(rock r paper p scissors s lizard l spock sp).include?(choice)
+#       puts "Sorry, invalid choice."
+#     end
+#   end
+# rescue Timeout::Error
+#   choice = "timeout"
+# end
 
-# # puts choice
+# puts choice
 
 # choice_1 = nil
 # choice_2 = nil
@@ -152,24 +152,23 @@
 #   puts "Press enter to continue."
 # end
 
-# champion_message
+class Light
+  attr_accessor :brightness, :color
 
-class Greeting
-  def greet(message)
-    puts message
+  def initialize(brightness, color)
+    @brightness = brightness
+    @color = color
   end
+
+  def self.information
+    "I want to turn on the light with a brightness level of super high and a color of green."
+  end
+  # private
+  # attr_accessor :brightness, :color
 end
 
-class Hello < Greeting
-  def self.hi
-    greet("Hello")
-  end
-end
-
-class Goodbye < Greeting
-  def bye
-    greet("Goodbye")
-  end
-end
-
-Hello.hi
+light = Light.new("super high", "green")
+p Light.information
+light.brightness = "dull"
+light.color = "blue"
+p light
