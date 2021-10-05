@@ -397,11 +397,11 @@ class Game
 
   def continue_with_enter
     puts "Press enter to continue."
-    answer = gets.strip
+    answer = gets
     loop do
       break if %W(continue\n \n).include?(answer)
       puts "Please press enter to continue."
-      answer = gets.strip
+      answer = gets
     end
   end
 
@@ -434,11 +434,11 @@ class Game
 
   def practice_prompt
     puts "Continue (enter) / (S)witch Opponent / (Q)uit Practice"
-    answer = gets.downcase.strip
+    answer = gets.downcase
     loop do
       break if %W(continue\n \n switch\n s\n quit\n q\n).include?(answer)
       puts "Sorry, invalid response."
-      answer = gets.downcase.strip
+      answer = gets.downcase
     end
     return "continue" if ["continue\n", "\n"].include?(answer)
     return "quit" if ["quit", "q"].include?(answer.chomp)
@@ -446,11 +446,11 @@ class Game
 
   def tournament_prompt
     puts "Continue (enter) / (Q)uit Tournament"
-    answer = gets.downcase.strip
+    answer = gets.downcase
     loop do
       break if %W(continue\n \n quit\n q\n).include?(answer)
       puts "Sorry, invalid response."
-      answer = gets.downcase.strip
+      answer = gets.downcase
     end
     return "continue" if ["continue\n", "\n"].include?(answer)
     return "quit" if ["quit", "q"].include?(answer.chomp)
