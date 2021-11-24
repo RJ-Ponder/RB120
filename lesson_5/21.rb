@@ -95,7 +95,7 @@ end
 
 class Game
   BUST_LIMIT = 21
-  WINNING_SCORE = 20
+  WINNING_SCORE = 10
   DEALER_LIMIT = 17
 
   attr_reader :dealer, :player, :deck
